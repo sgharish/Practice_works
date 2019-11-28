@@ -1,0 +1,6 @@
+C:\Users\harry\source\repos\Model_prac5\Model_prac5\bin\Debug\Model_prac5.exe.config
+C:\Users\harry\source\repos\Model_prac5\Model_prac5\bin\Debug\Model_prac5.exe
+C:\Users\harry\source\repos\Model_prac5\Model_prac5\bin\Debug\Model_prac5.pdb
+C:\Users\harry\source\repos\Model_prac5\Model_prac5\obj\Debug\Model_prac5.csprojAssemblyReference.cache
+C:\Users\harry\source\repos\Model_prac5\Model_prac5\obj\Debug\Model_prac5.exe
+C:\Users\harry\source\repos\Model_prac5\Model_prac5\obj\Debug\Model_prac5.pdb
