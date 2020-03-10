@@ -1,3 +1,4 @@
+_____Function declaration-_____________
 #include <stdio.h>
 #include <math.h>
 
@@ -24,3 +25,4 @@ int qut(int x,int y){
     return q;
 }
 /* this is the code to remind myself that before calling a function I have to declare it. Check the code. refernce tutorial point*/
+/*sizeof()---- is the comment for finding the size of a data type*/
