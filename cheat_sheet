@@ -26,3 +26,39 @@ int qut(int x,int y){
 }
 /* this is the code to remind myself that before calling a function I have to declare it. Check the code. refernce tutorial point*/
 /*sizeof()---- is the comment for finding the size of a data type*/
+_____________using a string__--_
+#include <stdio.h>
+#include <math.h>
+
+void main()
+{
+    char c;
+    printf("enter the character:");
+    scanf("%c",&c);
+    if(c=='a'||c=='A'||c=='e'||c=='E'||c=='I'||c=='i'||c=='o'||c=='o'||c=='u'||c=='U'){
+        printf("%c is the vowel",c);
+    }
+    else{
+        printf("%c is the consonat",c);
+    }
+}
+/*take away message. I always forget that I have to compare the char within the quotes. refernce programiz*/
+____sorting and array___
+#include <stdio.h>
+#include <math.h>
+
+void main()
+{
+    int a[20],b,i;
+    printf("enter the number of numbers in your list(max 20):");
+    scanf("%d",&b);
+    for(i=0;i<b;i++){
+        printf("enter the %d number:",i+1);
+        scanf("%d",&a[i]);
+    }
+    for(i=0;i<b;i++){
+        printf("\n %d",a[i]);
+    }
+    printf("are the list of the arrays");
+}
+/*must try various sorting algorithm*/
