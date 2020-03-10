@@ -1,0 +1,26 @@
+#include <stdio.h>
+#include <math.h>
+
+int remind(int x, int y);
+int qut(int x,int y);
+int main()
+{
+    int num,d,q,r;
+    printf("enter the number to be divided");
+    scanf("%d",&num);
+    printf("\n enter the number to divide:");
+    scanf("%d",&d);
+    int reminder = remind(num,d);
+    int qot = qut(num,d);
+    printf("\n reminder=%d \n quote = %d",reminder,qot);
+    return 0;
+}
+int remind(int x, int y){
+    int r = x%y;
+    return r;
+}
+int qut(int x,int y){
+    int q = x/y;
+    return q;
+}
+/* this is the code to remind myself that before calling a function I have to declare it. Check the code. refernce tutorial point*/
