@@ -4,16 +4,23 @@
 
 int scoreboard();
 int in_over();
-int score_sheet();
+int score_sheet(int run,char wick);
 int match_details();
 int toss_stat(int opt,int won);
 int wickets();
+int match_format();
+int target();
+int rotation();
+int bowling();
 
+int formate,max_over,max_wicket,max_inning;
 int overs = 0;
-char team_1[10],team_2[10];
+char team_1[10],team_2[10],bat_1[10],bat_2[10],bowl[10],wick;
 int option,toss;
-int t_run=0,b1_run=0,b2_run=0,wicket=0,innings=0;
+int t_run=0,b1_run=0,b2_run=0,balls=0,wicket=0,innings=0,tar_run=0,striker =1;
+
 int main(){
+        match_format();
         match_details();
         printf("who is batting and who won the toss? \n 1.%s\n 2.%s \n 3. TBA\n",team_1,team_2);
         scanf("%d %d",&option,&toss);
@@ -21,17 +28,48 @@ int main(){
                 return 0;
         }
 
-        while(innings<2){
+        scoreboard();
+        while(overs<max_over){
+                in_over();
+                bowling();
+        }
+        overs=0;
+        b1_run=0;
+        b2_run=0;
+        tar_run = t_run+1;
+        t_run=0;
+        wicket=0;
+        innings++;
+        if(innings == 1){
                 scoreboard();
         while(overs<2){
                 in_over();
+                bowling();
         }
-        overs=0;
-        innings++;
-        b1_run=0;
-        b2_run=0;
-        t_run=0;
-        wicket=0;
+        target();
+        }
+}
+
+int match_format(){
+        int op;
+        printf("Format of the match\n 1. ODI \n 2.T20\n 3.MANUAL ENTRY");
+        scanf("%d",&op);
+        switch(op){
+                case 1: max_inning = 2;
+                       max_over= 50;
+                        max_wicket = 10;
+                        break;
+                         case 2:max_inning = 2;
+                        max_over= 20;
+                        max_wicket = 10;
+                        break;
+                default:printf("ENTER THE No. Of INNING:\n");
+                        scanf("%d",&max_inning);
+                        printf("ENTER THE no of overs:\n");
+                        scanf("%d",&max_over);
+                        printf("MAX wickets\n");
+                        scanf("%d",&max_wicket);
+                        break;
         }
 }
 
@@ -47,76 +85,136 @@ int toss_stat(int opt,int won){
                         break;
                 case 2: printf("Toss won by %s\n",team_2);
                         break;
-                default: printf("\n yet to happen");
+                default: printf(" yet to happen\n");
                          return(0);
                          break;
         }
         if(opt ==1){
-                printf("\n%s is batting",team_1);
+                printf("%s is batting\n",team_1);
         }
         else if(opt==2){
-                 printf("\n%s is batting",team_2);
+                 printf("%s is batting\n",team_2);
         }
 }
+
+
 int scoreboard(){
-        char bat_1[10],bat_2[10],bowl[10];
-        printf("\nEnter the batmans bowler second name:\n");
-        scanf("%s %s %s",bat_1,bat_2,bowl);
-        printf("%s\n %s\t \t %s",bat_1,bat_2,bowl);
+        printf("Enter the batmans second name:\n");
+        scanf("%s %s",bat_1,bat_2);
+        printf("%s* %s\n",bat_1,bat_2);
+        bowling();
 }
 
 int in_over(){
-        int balls = 0,run,op,extras=0;
-        char wick;
+        int run,op,extras =0;
+        char extra;
         for(balls = 0;balls<(6+extras);balls++){
-                printf("\nEnter run scored in this ball and y if wicket fall:\n ");
+                printf("Enter run scored in this ball and 'w' if wicket fall or an extra 'e'or 'b' for both:\n ");
                 scanf("%d %c",&run,&wick);
-                printf("who scored 1 or 2 or 0(extra/wicket)");
-                scanf("%d",&op);
-                printf("over:%d.%d",overs,balls);
-                if(wick == 'y'){
-                        int w = wickets();
-                if(w==0){
-                        innings++;
-                        break;
+                score_sheet(run,wick);
+                switch(wick){
+                        case 'w':wickets();
+                                break;
+
+                        case 'e': extras++;
+                                 break;
+
+                        case 'b':wickets();
+                                extras++;
+                                break;
                 }
-                }
-                score_sheet(run,op);
+                if(innings!=0 && wicket<max_wicket){
+                        target();
+        }
         }
         overs++;
+        rotation();
         return(overs);
 }
 
-int score_sheet(int run,int b){
-        switch(b){
-                case 1: b1_run +=run;
-                        break;
-                case 2: b2_run +=run;
-                        break;
-                default: break;
+int score_sheet(int run,char wick){
+        int oore;
+        if(run%2!=0&&striker==1&&wick !='e'){
+                b1_run+=run;
+                striker=2;
+                printf("%s:%d \n %s:%d*\n",bat_1,b1_run,bat_2,b2_run);
+        }
+        else if(run%2==0&&striker==1&&wick !='e') {
+                b1_run+=run;
+                striker=1;
+                printf("%s:%d*\n%s:%d\n",bat_1,b1_run,bat_2,b2_run);
+        }
+        else if(run%2!=0&&striker!=1&&wick !='e') {
+                b2_run+=run;
+                striker=1;
+                printf("%s:%d\n%s:%d*\n",bat_1,b1_run,bat_2,b2_run);
+        }
+        else if(wick!='e'){
+                b2_run+=run;
+                striker=2;
+                printf("%s:%d  \n%s:%d*\n",bat_1,b1_run,bat_2,b2_run);
         }
         t_run +=run;
+        printf("total:%d/%d in overs:%d.%d\n",t_run,wicket,overs,balls);
+        return(t_run);
+}
 
-        printf("total:%d/%d     batsman1:%d  batsman2:%d",t_run,wicket,b1_run,b2_run);
+int bowling(){
+        printf("Enter the bowlers detail");
+        scanf("%s",bowl);
+        printf("%s\n is bowling the %d over",bowl,overs);
 }
 
 int wickets(){
         int num;
         char bat[10];
+        wicket++;
         printf("who's wicket: 1 or 2");
         scanf("%d",&num);
-           printf("Enter the new batsman name");
-                scanf("%s",bat);
-                printf("%s\n is the new batsmen",bat);
+        if(wicket<max_wicket){
+                printf("Enter the new batsman name\n");
         if(num==1){
+                scanf("%s",bat_1);
+                printf("%sis the new batsmen\n",bat_1);
+                striker =1;
                 b1_run=0;
         }
         else{
+                scanf("%s",bat_2);
+ printf("%sis the new batsmen\n",bat_2);
                 b2_run=0;
+                striker = 2;
         }
-        wicket++;
-        if(wicket==2){
+        }
+        else{
+                overs = max_over;
+                balls = 6;
+                printf("End of the innings\n total = %d",t_run);
                 return(0);
         }
+}
 
-     }
+int rotation(){
+        if(striker!=1){
+                striker =1;
+        }
+        else{
+                striker = 2;
+        }
+}
+
+int target(){
+        int targetr=tar_run - t_run;
+        printf("%d is the target\n",targetr);
+        if(targetr<=0){
+                printf("batting team won the match\n");
+                overs = 2;
+                balls =6;
+        }
+        else if (overs>=max_over&&targetr>0){
+                printf("bowling team won the match\n");
+                return 0;
+        }
+}
+
+
