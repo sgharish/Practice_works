@@ -22,7 +22,7 @@ link_2.Joint = r_joint;
 addBody(planar_arm,link_2,'base1');
 link_3 = rigidBody('link2');
 addBody(planar_arm,link_3,'link1');
-
+source = 'link1';
 ee = 'link2';
 
 jointAnglePosition = [pi;pi];
@@ -48,6 +48,7 @@ tform = getTransform(planar_arm,randConfig,'link2','base');
 ik = inverseKinematics('RigidBodyTree',planar_arm);
 weights = [0.5 0.5 0.5 1 1 1];
 home = planar_arm.homeConfiguration;
+homef = planar_arm.homeConfiguration;
 n = numel(home);
 %% Linear path is selected to complete the application therefore the waypoint of the path are
 % position of the end effector
@@ -65,7 +66,7 @@ orientation = [0 pi/2 0;...
     pi pi/2 0]';
 
 % time for each waypoint
-waytime = 0:0.4:2;
+waytime = 0:6:30;
 
 %% trajectory parameters
 
@@ -91,76 +92,68 @@ joint_ts = zeros(n,tn);
  home(home < -pi) = home(home < -pi) + 2*pi;
 % 
 %% trajectory generation using cubic polynomial 
-%[q,qd,qdd] = cubicpolytraj(waypoints,waytime,trajectoryT,waypointVels);
+    
 [q,qd,qdd] = cubicpolytraj(waypoints,waytime,trajectoryT, ... 
             'VelocityBoundaryCondition',waypointVels);
-   alpha = 100;
-   beta =100;
-   eta = 50;
-   while i < tn+1
-       i = i+1;
-   end
-for idx = 1:tn
-    xdd(:,idx) = diff(q(:,idx));
-    
-end
-    velo = [0.01; 0.01 ];
-%     tgtPose = trvec2tform(q(:,1)');
-%    [configm,info] = ik(ee,tgtPose,weights,home);
-%    home = configm;
-% %     
-%     joint_ts(:,1) = configm;
-%     jac = geometricJacobian(planar_arm,configm,'link2');%for the required position
-%     ij = inv(jac(3:4,:));
-%     veloc = ij*velo;
-%       xd = jac(3:4,:)*veloc;
-%      eeTrans = getTransform(planar_arm,configm,ee);
-%      ee_pos(:,1) = tform2trvec(eeTrans);
-%      error = ee_pos(:,idx) - q(:,idx);
-%      jac_tran = jac(3:4,:)';
-%      eie = xd - (alpha*error);
-%      eer_velo = ij*eie;
-%      s = jac(3:4,:)*q(1:2,1) - xd + alpha*error;
-%      z2 = veloc(1:2,:) - qd(1:2,1);
-%      torque = - (jac_tran*error) - (beta*jac_tran*s) - eta*(z2);
-    
-for idx = 1:tn
-    % Solve IK
-     tgtPose = trvec2tform(q(:,idx)');
-    [configm,info] = ik(ee,tgtPose,weights,home);
-    home = configm;
-    
-    joint_ts(:,idx) = configm;
-    eeTrans = getTransform(planar_arm,configm,ee);
-    ee_pos(:,idx) = tform2trvec(eeTrans)';
-end
-m_pos =  ee_pos(:,1);
-m_vel = [0,0];
-    
-%         %jac_n = geometricJacobian(planar_arm,,'link2');
-%     %ij_n = inv(jac_n(3:4,:));
-%     %dlin_velo = jac(3:4,:)*qd(1:2,idx);
-%     %ee_qd(:,idx) = ij_n*velo;
-conf = joint_ts(:,1)';
-for idx = 1:tn
+ 
+        alpha = 2;
+        beta =1;
+        eta = 1;
+        velo = [0.01; 0.01 ];
+
+
+%solve ik    
+% for idx = 1:tn
+% tgtPose = trvec2tform(q(:,idx)');
+% [configm,info] = ik(ee,tgtPose,weights,home);
+% home = configm;
+%     
+% joint_ts(:,idx) = configm;
+eeTrans = getTransform(planar_arm,home,ee);
+ee_pos = tform2trvec(eeTrans)';
+% end
+
+m_pos(:,1) =  ee_pos';
+m_vel(1,:) = [0,0];
+i_vel = [0,0];
+m_acc = [0,0];
+conf= home;
+l1=1;l2=1.5;
+a1= 0.5;a2 = 1.75;
+l= 0.1;
+a = 0.03;
+for idx = 2:tn
 jac = geometricJacobian(planar_arm,conf,'link2');%for the required position
-    ij = inv(jac(4:5,:));
-    veloc = ij*velo;
-    xd = jac(3:4,:)*veloc;     
-    error(:,idx) = m_pos(1:2,:) - q(1:2,idx);
-    jac_tran = jac(3:4,:)';
-    eie = xd - (alpha*error(:,idx));
-    eer_velo = ij*eie;
-    s = jac(3:4,:)*q(1:2,idx) - xd + alpha*error(:,idx);
-    z2 = m_vel' - qd(1:2,idx);
-    torque = ( -(jac_tran*error(:,idx)) - (beta*jac_tran*s) - eta*(z2));
+J_g = jac(4:5,:);% for the two link manipulator only the linear velocity representation of the Jacobian is taken into consideration
+    ij = inv(J_g); %inverse of the jacobian
+    veloc = ij*velo;%joint velocities of the manipulator
+    xd = J_g*veloc; %linear velocity of the end effector (code line from Petercook package)     
+    error(:,idx) = m_pos(1:2,:) - q(1:2,idx); %positional error
+    jac_tran = J_g';%transpose of the jacobian
+    %subsystem z1 = error
+    %subsystem z1d = (J^{-1})*(xd -\alpha*z1); here xd is equal to the
+    %xddot in the paper.
+    eie = xd - (alpha*error(:,idx));  
+    eer_velo(:,idx) = ij*eie;%subsystem1(virtual controller/velocity controller)
+    v_velo =  eer_velo(:,idx)';
+    dt = 0.3;
+    c_vd = acc(i_vel,v_velo,dt);
+    yk = kinematic_Regressor_estimated(conf,m_vel(idx-1,:),l,a); %kinematic regressor with estimated parameter
+    s = J_g*q(1:2,idx) - yk+ alpha*error(:,idx);%required sliding vector(proof unknown)
+    z2 = m_vel(idx-1,:)' - qd(1:2,idx);%subsystem 2
+    torque = ( -(jac_tran*error(:,idx)) - (beta*jac_tran*s) - eta*(z2)+dynamic_regressor(conf,eer_velo,c_vd,l1,l2,a1,a2));%required torque
+    %piece has to be changed currently to montior the position of the end
+    %effector
     show(planar_arm,conf,'Frames','on');
     title(['Trajectory at t = ' num2str(trajectoryT(idx))]);
     drawnow;
-    m_acc = forwardDynamics(planar_arm,joint_ts(:,idx)',m_vel,torque');
-    dt = 0.3;
-    m_vel = cumtrapz(dt,m_acc);
-    conf = cumtrapz(dt,m_vel);
+    % to find the requried acceleration for the given torque forward
+    % dynamics is used.
+    m_acc(idx,:) = forwardDynamics(planar_arm,conf,m_vel(idx-1,:),torque');
+   
+    
+    m_vel(idx,:) = vel(m_acc(idx,:),dt,m_vel(idx-1,:));
+    conf = configuration(m_acc(idx,:),m_vel(idx,:),conf,dt);
     eeTrans = getTransform(planar_arm,conf,ee);
     m_pos = tform2trvec(eeTrans)';
     eem_pos(:,idx) = tform2trvec(eeTrans)';
@@ -184,17 +177,17 @@ xlabel('X [m]');
 ylabel('Y [m]');
 zlabel('Z [m]');
 legend('Task Space Trajectory');
-for idx = 1:n
-    figure, hold on;
-    plot(trajectoryT,joint_ts(idx,:),'b-');
-    for wIdx = 1:numWaypoints
-       xline(waytime(wIdx),'r-');
-    end
-    title(['Joint ' num2str(idx) ' Trajectory']);
-    xlabel('Time [s]');
-    ylabel('Joint Angle [rad]');
-    legend('Task Space Trajectory');
-end
+% for idx = 1:n
+%     figure, hold on;
+%     plot(trajectoryT,joint_ts(idx,:),'b-');
+%     for wIdx = 1:numWaypoints
+%        xline(waytime(wIdx),'r-');
+%     end
+%     title(['Joint ' num2str(idx) ' Trajectory']);
+%     xlabel('Time [s]');
+%     ylabel('Joint Angle [rad]');
+%     legend('Task Space Trajectory');
+% end
 
 
 % for idx = 1:tn
@@ -232,8 +225,56 @@ H = massMatrix(planar_arm);
   
 showdetails(planar_arm);
 
+function c_vd = acc(v0,v,t)
+c_vd = (v-v0)/t;
+end
 
+%function to calculate the kinematic regressor. 
+function yk = kinematic_Regressor_estimated(q,qd,l1,a2)
+theta_k = [l1;a2;l1;a2];
+y_k = [-sin(q(:,1))*qd(:,1), -sin(q(:,1)+q(:,2))*(qd(:,1)+qd(:,2)),0,0;...
+    0,0,cos(q(:,1))*qd(:,1), cos(q(:,1)+q(:,2))*(qd(:,1)+qd(:,2))];
+yk = y_k*theta_k;
+end
 
+%function to calculate the dynamic regressor of the system.
+function yd = dynamic_regressor(q,qd,qdd,l1,l2,a1,a2)
+g = 9.8; I1 = 0.6; I2 =0.2;m1 =0;m2= 0.07;
+ y11 = (l1^2)*qdd(:,1) + l1*g*cos(q(:,1));
+ y12 = 2*l1*qdd(:,1) +g*cos(q(:,1));
+ y13 = qdd(:,1);
+ y14 = 0;
+ y15 = ((l1^2)+2*l1*l2*cos(q(:,1))+(l2^2))*qdd(:,1) + (l1*l2*cos(q(:,2))+(l1^2))*qdd(:,2) - (2*l1*l2*sin(q(:,2))*qd(:,1)*qd(:,2)) - l1*l2*sin(q(:,2))*(qd(:,2)^2) +l1*g*cos(q(:,1))+l2*g*cos(q(:,1)+q(:,2));
+ y16 = (2*l1*cos(q(:,1))+2*l2)*qdd(:,1) + (l1*cos(q(:,2))+2*l2)*qdd(:,2) - 2*l1*sin(q(:,1))*qd(:,1)*qd(:,2) - l1*sin(q(:,2))*(cos(q(:,2))^2)+g*cos(q(:,1)+q(:,2));
+ y17 = qdd(:,1)+qdd(:,2);
+ y18 = 0;
+ y21 =0; y22=0;y23=0;y24=0;y28=0;
+ y27 = qdd(:,1)+qdd(:,2);
+ y25 = (2*l1*l2*cos(q(:,2))+a2^2)*qdd(:,1)+ l2^2*qdd(:,2)+l1*l2*sin(q(:,2))*(qd(:,1))^2+l2*g*cos(q(:,1)+q(:,2));
+ y26 = (a1*cos(q(:,2))+2*l2)*qdd(:,1) + 2*l2*qdd(:,2) +l1*sin(q(:,2))*qd(:,1)^2+g*cos(q(:,1)+q(:,2));
+ y_d = [y11,y12,y13,y14,y15,y16,y17,y18;...
+     y21,y22,y23,y24,y25,y26,y27,y28];
+ p1 = m1;
+ p2 = m1*a1*cos(q(:,1));
+ p3 = I1+m1*a1*cos(q(:,1));
+ p4 = 0;
+ p5= m2;
+ p6 = m2*a2*cos(q(:,2));
+ p7= I1+m2*a2*cos(q(:,2));
+ p8= 0;
+ phi = [p1,p2,p3,p4,p5,p6,p7,p8]';
+ yd = y_d*phi;
+end
+
+%function to find the joint velocity. 
+function m_velo = vel(m_acc,dt,m_velo)
+m_velo = m_velo+(m_acc*dt);
+end
+
+%function to find the configuration.
+function m_conf = configuration(a,v,s,t)
+m_conf = s+v*t+(1/2)*a*t;
+end
 
 
 
