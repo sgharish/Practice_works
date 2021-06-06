@@ -2,8 +2,8 @@
 #include<stdint.h>
 
 struct {
-	unsigned int age : 4;
-	unsigned int sl_No : 3;
+	unsigned int age : 4; \\ size is 4 bits (values between 0 - 15)
+	unsigned int sl_No : 3; \\ size is 3 bits (values between 0- 7)
 }winners;
 
 int main(){
